@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* PixelTrace design tokens: "Digital Evidence Studio" */
+@theme {
+  --color-canvas: #060a13;
+  --color-panel: #0d1424;
+  --color-panel2: #111a2e;
+  --color-raised: #17223b;
+  --color-line: #1f2c47;
+  --color-line2: #2d3e61;
+  --color-fg: #e8eefb;
+  --color-muted: #9aaac8;
+  --color-faint: #7587a8;
+  --color-accent: #3d8bff;
+  --color-accent2: #2a6df4;
+  --color-cyan: #22d3ee;
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --color-bad: #f87171;
+
+  --font-sans: "Inter", "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
+
+  --radius-card: 12px;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  background-image:
+    radial-gradient(900px 420px at 12% -8%, rgba(61, 139, 255, 0.12), transparent 70%),
+    radial-gradient(700px 360px at 100% 0%, rgba(34, 211, 238, 0.06), transparent 70%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(61, 139, 255, 0.4);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Faint camera-grid texture, used sparingly on hero/header surfaces */
+.trace-grid {
+  background-image:
+    linear-gradient(to right, rgba(120, 160, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 160, 255, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 95%);
+}
+
+/* Viewfinder corner marks */
+.marks {
+  --m: 14px;
+  --c: rgba(34, 211, 238, 0.7);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--m) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 2px var(--m) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--m) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 2px var(--m) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--m) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 2px var(--m) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--m) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 2px var(--m) no-repeat;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line2) transparent;
+}
+
+@keyframes pt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pt-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.pt-spin {
+  animation: pt-spin 0.8s linear infinite;
+}
+.pt-rise {
+  animation: pt-rise 0.22s ease-out both;
+}
+.pt-scan {
+  animation: pt-scan 1.4s ease-in-out infinite;
+}
+
+dialog::backdrop {
+  background: rgba(3, 6, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
