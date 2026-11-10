@@ -90,6 +90,8 @@ See `.env.example`. Limits default to 10 images per batch, 20 MB per image and 4
 
 * Any Node host (Docker, Render, Railway, Fly.io, a VM) running `npm run build && npm run start` with
   `DATABASE_URL` pointing at a managed PostgreSQL. Run `npx drizzle-kit push` once against it.
+* On Vercel, the project now includes a `vercel-build` hook that runs `drizzle-kit push` before `next build`,
+  so the required PostgreSQL tables are created automatically when `DATABASE_URL` is set in Project Settings.
 * `sharp` ships prebuilt binaries for common platforms. Use a standard glibc or musl Node image.
 * The in-memory rate limiter is per instance. Use a shared limiter (for example Redis) behind several instances.
 * Deployment has **not** been performed or verified as part of this delivery.
