@@ -64,13 +64,14 @@ export async function purgeExpired(force = false): Promise<number> {
   return deleted.length;
 }
 
-export async function saveAnalysis(result: AnalysisResult, meta: { thumbnail: string | null }): Promise<void> {
+export async function saveAnalysis(result: AnalysisResult, meta: { thumbnail: string | null; ownerId: string }): Promise<void> {
   const make = result.camera.find((f) => f.id === "make")?.value ?? null;
   const model = result.camera.find((f) => f.id === "model")?.value ?? null;
   const { thumbnail: _omit, ...stored } = result;
   void _omit;
   await db.insert(analyses).values({
     id: result.id,
+    ownerId: meta.ownerId,
     sessionId: result.sessionId,
     filename: result.file.filename,
     format: result.file.detectedFormat,
@@ -96,11 +97,11 @@ export async function saveAnalysis(result: AnalysisResult, meta: { thumbnail: st
   });
 }
 
-export async function findDuplicates(sha256: string, sessionId: string) {
+export async function findDuplicates(sha256: string, sessionId: string, ownerId: string) {
   const rows = await db
     .select({ id: analyses.id, filename: analyses.filename, createdAt: analyses.createdAt })
     .from(analyses)
-    .where(and(eq(analyses.sha256, sha256), or(eq(analyses.persisted, true), eq(analyses.sessionId, sessionId))))
+    .where(and(eq(analyses.ownerId, ownerId), eq(analyses.sha256, sha256), or(eq(analyses.persisted, true), eq(analyses.sessionId, sessionId))))
     .orderBy(desc(analyses.createdAt))
     .limit(5);
   return rows.map((r) => ({ id: r.id, filename: r.filename, analyzedAt: r.createdAt.toISOString() }));
@@ -111,30 +112,30 @@ export function isUuid(v: string): boolean {
   return UUID_RE.test(v);
 }
 
-export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
+export async function getAnalysis(id: string, ownerId: string): Promise<AnalysisResult | null> {
   if (!isUuid(id)) return null;
-  const rows = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
+  const rows = await db.select().from(analyses).where(and(eq(analyses.id, id), eq(analyses.ownerId, ownerId))).limit(1);
   if (!rows[0]) return null;
   return { ...(rows[0].result as AnalysisResult), thumbnail: rows[0].thumbnail };
 }
 
-export async function getAnalyses(ids: string[]): Promise<AnalysisResult[]> {
+export async function getAnalyses(ids: string[], ownerId: string): Promise<AnalysisResult[]> {
   const out: AnalysisResult[] = [];
   for (const id of ids.slice(0, 100)) {
-    const r = await getAnalysis(id);
+    const r = await getAnalysis(id, ownerId);
     if (r) out.push(r);
   }
   return out;
 }
 
-export async function deleteAnalysis(id: string): Promise<boolean> {
+export async function deleteAnalysis(id: string, ownerId: string): Promise<boolean> {
   if (!isUuid(id)) return false;
-  const rows = await db.delete(analyses).where(eq(analyses.id, id)).returning({ id: analyses.id });
+  const rows = await db.delete(analyses).where(and(eq(analyses.id, id), eq(analyses.ownerId, ownerId))).returning({ id: analyses.id });
   return rows.length > 0;
 }
 
-export async function deleteAll(): Promise<number> {
-  const rows = await db.delete(analyses).returning({ id: analyses.id });
+export async function deleteAll(ownerId: string): Promise<number> {
+  const rows = await db.delete(analyses).where(eq(analyses.ownerId, ownerId)).returning({ id: analyses.id });
   return rows.length;
 }
 
@@ -161,6 +162,7 @@ function toItem(r: typeof analyses.$inferSelect): HistoryItem {
 }
 
 export interface HistoryQuery {
+  ownerId: string;
   q?: string;
   format?: string;
   gps?: "yes" | "no";
@@ -173,7 +175,7 @@ export interface HistoryQuery {
 }
 
 export async function listHistory(query: HistoryQuery): Promise<{ items: HistoryItem[]; total: number }> {
-  const where: (SQL | undefined)[] = [];
+  const where: (SQL | undefined)[] = [eq(analyses.ownerId, query.ownerId)];
   if (query.sessionId) where.push(eq(analyses.sessionId, query.sessionId));
   else where.push(eq(analyses.persisted, true));
   if (query.q) {
@@ -191,8 +193,9 @@ export async function listHistory(query: HistoryQuery): Promise<{ items: History
   return { items: rows.map(toItem), total: n };
 }
 
-export async function dashboardStats(): Promise<DashboardStats> {
+export async function dashboardStats(ownerId: string): Promise<DashboardStats> {
   const persisted = eq(analyses.persisted, true);
+  const owned = and(persisted, eq(analyses.ownerId, ownerId));
   const [totals] = await db
     .select({
       total: sql<number>`count(*)::int`,
@@ -202,21 +205,21 @@ export async function dashboardStats(): Promise<DashboardStats> {
       missing: sql<number>`count(*) filter (where not ${analyses.hasExif})::int`,
     })
     .from(analyses)
-    .where(persisted);
+    .where(owned);
   const formats = await db
     .select({ label: analyses.format, count: sql<number>`count(*)::int` })
     .from(analyses)
-    .where(persisted)
+    .where(owned)
     .groupBy(analyses.format)
     .orderBy(desc(sql`count(*)`));
   const makers = await db
     .select({ label: analyses.cameraMake, count: sql<number>`count(*)::int` })
     .from(analyses)
-    .where(and(persisted, sql`${analyses.cameraMake} is not null`))
+    .where(and(owned, sql`${analyses.cameraMake} is not null`))
     .groupBy(analyses.cameraMake)
     .orderBy(desc(sql`count(*)`))
     .limit(8);
-  const recent = await db.select().from(analyses).where(persisted).orderBy(desc(analyses.createdAt)).limit(6);
+  const recent = await db.select().from(analyses).where(owned).orderBy(desc(analyses.createdAt)).limit(6);
   return {
     total: totals.total,
     today: totals.today,

@@ -73,7 +73,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Archive" title="Analysis history" description="Every report saved while history is enabled. Search, filter, reopen or delete them at any time." />
+      <PageHeader eyebrow="Archive" title="Analysis history" description="Reports saved in this browser while history is enabled. Search, filter, reopen or delete them at any time." />
 
       <Card className="mb-5 p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">

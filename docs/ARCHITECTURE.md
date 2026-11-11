@@ -10,6 +10,7 @@ src/
     api/reports/[id]/[format]   json | csv | pdf
     api/reports/batch/[format]  json | csv batch summary
     api/settings, api/dashboard, api/health, api/download
+  proxy.ts                Initializes a private browser owner cookie and injects its server-only request context
     (pages) / analyze bulk history reports settings about report/[id]
   components/             UI primitives, shell, upload, report, metadata explorer, indicators
   lib/
@@ -36,10 +37,12 @@ tests/                    Vitest suites
 
 ## Data model
 
-`analyses`: one row per analysis. Columns for filtering plus the full `result` JSON. Uploaded bytes are
+`analyses`: one row per analysis, scoped by `owner_id` to a private browser cookie. Columns for filtering plus the full `result` JSON. Uploaded bytes are
 never stored. An optional downscaled JPEG thumbnail (480 px, metadata stripped) can be stored.
 `persisted=false` rows (history off) are purged after 60 minutes. Retention days are enforced lazily.
 `app_settings`: single row.
+
+Analysis, history, dashboard, duplicate, delete and report queries always include the browser owner. The owner cookie is an anonymous browser partition, not verified account authentication.
 
 ## Forensic rules
 

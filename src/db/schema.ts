@@ -18,6 +18,8 @@ export const analyses = pgTable(
   "analyses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** Anonymous browser partition; null for records created before ownership was added. */
+    ownerId: uuid("owner_id"),
     sessionId: text("session_id").notNull(),
     filename: text("filename").notNull(),
     format: text("format").notNull(),
@@ -45,6 +47,7 @@ export const analyses = pgTable(
     index("analyses_sha256_idx").on(t.sha256),
     index("analyses_created_idx").on(t.createdAt),
     index("analyses_session_idx").on(t.sessionId),
+    index("analyses_owner_created_idx").on(t.ownerId, t.createdAt),
   ],
 );
 

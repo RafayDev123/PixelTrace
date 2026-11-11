@@ -1,6 +1,7 @@
 import { analyzeUpload } from "@/lib/pipeline";
 import { rateLimit, readFormFiles } from "@/lib/api-utils";
 import { AppError, errorResponse } from "@/lib/errors";
+import { ownerFromRequest } from "@/lib/owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     const sid = form.get("sessionId");
     const sessionId = typeof sid === "string" && SESSION_RE.test(sid) ? sid : undefined;
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await analyzeUpload({ filename: file.name, buffer, sessionId });
+    const result = await analyzeUpload({ filename: file.name, buffer, sessionId }, ownerFromRequest(req));
     return Response.json(result, { status: 201 });
   } catch (err) {
     return errorResponse(err);

@@ -1,4 +1,5 @@
 import { errorResponse, AppError } from "@/lib/errors";
+import { ownerFromRequest } from "@/lib/owner";
 import { deleteAll, listHistory, purgeExpired } from "@/lib/store";
 import type { MetadataLevel, Severity } from "@/lib/types";
 
@@ -17,6 +18,7 @@ export async function GET(req: Request) {
     const severity = p.get("severity");
     const sessionId = p.get("sessionId");
     const data = await listHistory({
+      ownerId: ownerFromRequest(req),
       q: p.get("q")?.slice(0, 100) || undefined,
       format: p.get("format") || undefined,
       gps: gps === "yes" || gps === "no" ? gps : undefined,
@@ -36,7 +38,7 @@ export async function DELETE(req: Request) {
   try {
     if (new URL(req.url).searchParams.get("confirm") !== "all")
       throw new AppError(400, "confirmation_required", "Add ?confirm=all to delete all stored analyses.");
-    const deleted = await deleteAll();
+    const deleted = await deleteAll(ownerFromRequest(req));
     return Response.json({ deleted });
   } catch (err) {
     return errorResponse(err);

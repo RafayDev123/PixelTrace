@@ -1,6 +1,7 @@
 import { AppError, errorResponse } from "@/lib/errors";
 import { safeDownloadName, toMetadataCsv, toReportJson } from "@/lib/exports";
 import { maskResult, parseReveal } from "@/lib/mask";
+import { ownerFromRequest } from "@/lib/owner";
 import { buildPdf } from "@/lib/pdf";
 import { getAnalysis, isUuid } from "@/lib/store";
 
@@ -12,7 +13,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string; for
     const { id, format } = await ctx.params;
     if (!isUuid(id)) throw new AppError(400, "invalid_id", "Analysis id is not valid.");
     if (!["json", "csv", "pdf"].includes(format)) throw new AppError(404, "unknown_format", "Report format must be json, csv or pdf.");
-    const stored = await getAnalysis(id);
+    const stored = await getAnalysis(id, ownerFromRequest(req));
     if (!stored) throw new AppError(404, "not_found", "Analysis not found. It may have been deleted or expired.");
     const reveal = parseReveal(new URL(req.url).searchParams);
     const r = maskResult(stored, reveal);

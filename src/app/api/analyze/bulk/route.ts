@@ -3,6 +3,7 @@ import { analyzeUpload } from "@/lib/pipeline";
 import { mapLimit, rateLimit, readFormFiles } from "@/lib/api-utils";
 import { config } from "@/lib/config";
 import { AppError, errorResponse } from "@/lib/errors";
+import { ownerFromRequest } from "@/lib/owner";
 import type { AnalysisResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -21,11 +22,12 @@ export async function POST(req: Request) {
     if (files.length > config.maxFiles)
       throw new AppError(413, "too_many_files", `A batch may contain at most ${config.maxFiles} images.`);
     const sessionId = randomUUID();
+    const ownerId = ownerFromRequest(req);
     // Bounded concurrency; one failing image never aborts the batch.
     const results = await mapLimit<File, Item>(files, config.bulkConcurrency, async (file) => {
       try {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const analysis = await analyzeUpload({ filename: file.name, buffer, sessionId });
+        const analysis = await analyzeUpload({ filename: file.name, buffer, sessionId }, ownerId);
         return { filename: file.name, status: "ok", analysis };
       } catch (err) {
         if (err instanceof AppError) return { filename: file.name, status: "error", error: { code: err.code, message: err.message } };
